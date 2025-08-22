@@ -5,6 +5,10 @@ from app.auth import get_current_user
 from datetime import datetime
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from fastapi.responses import StreamingResponse
+import io
+import csv
+from app.utils import geo_lookup
 
 
 app = FastAPI()
@@ -32,6 +36,7 @@ def get_device_type(user_agent: str):
 async def track_email(request: Request, email_uid: str):
     user_agent = request.headers.get('user-agent')
     client_ip = request.client.host
+    geo_city, geo_region, geo_country = geo_lookup(client_ip)
     device_type = get_device_type(user_agent)
     now = datetime.utcnow()
     event_data = {
@@ -40,7 +45,9 @@ async def track_email(request: Request, email_uid: str):
         "timestamp": now,
         "user_id": None,
         "client_ip": client_ip,
-        "geo_city": "", "geo_region": "", "geo_country": "",
+        "geo_city": geo_city,
+        "geo_region": geo_region,
+        "geo_country": geo_country,
         "user_agent": user_agent,
         "device_type": device_type,
         "proxy_detected": False,
@@ -55,6 +62,7 @@ async def track_email(request: Request, email_uid: str):
 async def track_click(request: Request, email_uid: str, target: str):
     user_agent = request.headers.get('user-agent')
     client_ip = request.client.host
+    geo_city, geo_region, geo_country = geo_lookup(client_ip)
     device_type = get_device_type(user_agent)
     now = datetime.utcnow()
     event_data = {
@@ -63,7 +71,9 @@ async def track_click(request: Request, email_uid: str, target: str):
         "timestamp": now,
         "user_id": None,
         "client_ip": client_ip,
-        "geo_city": "", "geo_region": "", "geo_country": "",
+        "geo_city": geo_city,
+        "geo_region": geo_region,
+        "geo_country": geo_country,
         "user_agent": user_agent,
         "device_type": device_type,
         "proxy_detected": False,
@@ -72,6 +82,7 @@ async def track_click(request: Request, email_uid: str, target: str):
     }
     save_event(event_data)
     return RedirectResponse(target)
+
 
 @app.get("/my_data")
 async def my_data(user=Depends(get_current_user)):
@@ -101,3 +112,38 @@ async def dashboard(request: Request):
         "click_counts": click_counts,
     })
 
+@app.get("/delete_my_data")
+async def delete_my_data():
+    db = SessionLocal()
+    db.query(Event).delete()
+    db.commit()
+    db.close()
+    return {"message": "All tracking data deleted."}
+
+
+@app.get("/download_csv")
+async def download_csv():
+    db = SessionLocal()
+    events = db.query(Event).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['timestamp', 'event_type', 'email_uid', 'target_url', 'client_ip',
+                     'geo_city', 'geo_region', 'geo_country', 'user_agent', 'device_type',
+                     'proxy_detected', 'bot_detected'])
+    for e in events:
+        writer.writerow([
+            e.timestamp,
+            e.event_type,
+            e.email_uid,
+            e.target_url,
+            e.client_ip,
+            e.geo_city,
+            e.geo_region,
+            e.geo_country,
+            e.user_agent,
+            e.device_type,
+            e.proxy_detected,
+            e.bot_detected
+        ])
+    output.seek(0)
+    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=events.csv"})
