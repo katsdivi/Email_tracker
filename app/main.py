@@ -4,6 +4,8 @@ from app.models import Event, SessionLocal
 from app.auth import get_current_user
 from datetime import datetime
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+
 
 app = FastAPI()
 
