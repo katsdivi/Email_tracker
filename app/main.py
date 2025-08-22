@@ -3,8 +3,12 @@ from fastapi.responses import StreamingResponse, RedirectResponse
 from app.models import Event, SessionLocal
 from app.auth import get_current_user
 from datetime import datetime
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+
+templates = Jinja2Templates(directory="app")  # your templates folder is `app/`
+
 
 def save_event(data):
     db = SessionLocal()
@@ -73,3 +77,24 @@ async def my_data(user=Depends(get_current_user)):
     events = db.query(Event).filter(Event.user_id == user['sub']).all()
     # Return only the dictionary fields that are serializable and exclude private attributes
     return [{key: getattr(e, key) for key in e.__mapper__.c.keys()} for e in events]
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return "<h1>Welcome to your Email Tracker API!</h1><p>Use /docs to see API documentation.</p>"
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request, user=Depends(get_current_user)):
+    db = SessionLocal()
+    events = db.query(Event).filter(Event.user_id == user['sub']).all()
+
+    timestamps = [str(e.timestamp) for e in events]
+    open_counts = [1 if e.event_type == "open" else 0 for e in events]
+    click_counts = [1 if e.event_type == "click" else 0 for e in events]
+
+    return templates.TemplateResponse("dashboard_template.html", {
+        "request": request,
+        "events": events,
+        "timestamps": timestamps,
+        "open_counts": open_counts,
+        "click_counts": click_counts,
+    })
