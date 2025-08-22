@@ -85,7 +85,8 @@ async def root():
     return "<h1>Welcome to your Email Tracker API!</h1><p>Use /docs to see API documentation.</p>"
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, user=Depends(get_current_user)):
+#async def dashboard(request: Request, user=Depends(get_current_user)):
+async def dashboard(request: Request):
     db = SessionLocal()
     events = db.query(Event).filter(Event.user_id == user['sub']).all()
 
