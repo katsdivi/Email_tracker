@@ -1,7 +1,40 @@
 <!DOCTYPE html>
 <html>
-<head><title>Dashboard</title></head>
+<head>
+  <title>Email Tracker Dashboard</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
 <body>
-<h1>Email Tracker Dashboard</h1>
+  <h1>Email Tracker Dashboard</h1>
+  <table>
+    <tr>
+      <th>Timestamp</th>
+      <th>Event Type</th>
+      <th>Email UID</th>
+      <th>Target URL</th>
+      <th>IP</th>
+      <th>Location</th>
+      <th>Device</th>
+      <th>User-Agent</th>
+      <th>Proxy/Bot</th>
+    </tr>
+    {% for event in events %}
+    <tr>
+      <td>{{ event.timestamp }}</td>
+      <td>{{ event.event_type }}</td>
+      <td>{{ event.email_uid }}</td>
+      <td>{{ event.target_url }}</td>
+      <td>{{ event.client_ip }}</td>
+      <td>{{ event.geo_city }}, {{ event.geo_region }}, {{ event.geo_country }}</td>
+      <td>{{ event.device_type }}</td>
+      <td>{{ event.user_agent }}</td>
+      <td>{{ event.proxy_detected }}/{{ event.bot_detected }}</td>
+    </tr>
+    {% endfor %}
+  </table>
 </body>
 </html>
