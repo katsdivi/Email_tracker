@@ -14,6 +14,8 @@ def save_event(data):
     db.close()
 
 def get_device_type(user_agent: str):
+    if user_agent is None:
+        return "Unknown"
     if "Mobile" in user_agent:
         return "Mobile"
     elif "Tablet" in user_agent:
@@ -27,12 +29,16 @@ async def track_email(request: Request, email_uid: str):
     device_type = get_device_type(user_agent)
     now = datetime.utcnow()
     event_data = {
-        "event_type": "open", "email_uid": email_uid, "timestamp": now,
+        "event_type": "open",
+        "email_uid": email_uid,
+        "timestamp": now,
         "user_id": None,
         "client_ip": client_ip,
         "geo_city": "", "geo_region": "", "geo_country": "",
-        "user_agent": user_agent, "device_type": device_type,
-        "proxy_detected": False, "bot_detected": False,
+        "user_agent": user_agent,
+        "device_type": device_type,
+        "proxy_detected": False,
+        "bot_detected": False,
         "target_url": "",
     }
     save_event(event_data)
@@ -46,12 +52,16 @@ async def track_click(request: Request, email_uid: str, target: str):
     device_type = get_device_type(user_agent)
     now = datetime.utcnow()
     event_data = {
-        "event_type": "click", "email_uid": email_uid, "timestamp": now,
+        "event_type": "click",
+        "email_uid": email_uid,
+        "timestamp": now,
         "user_id": None,
         "client_ip": client_ip,
         "geo_city": "", "geo_region": "", "geo_country": "",
-        "user_agent": user_agent, "device_type": device_type,
-        "proxy_detected": False, "bot_detected": False,
+        "user_agent": user_agent,
+        "device_type": device_type,
+        "proxy_detected": False,
+        "bot_detected": False,
         "target_url": target,
     }
     save_event(event_data)
@@ -61,4 +71,5 @@ async def track_click(request: Request, email_uid: str, target: str):
 async def my_data(user=Depends(get_current_user)):
     db = SessionLocal()
     events = db.query(Event).filter(Event.user_id == user['sub']).all()
-    return [e.__dict__ for e in events]
+    # Return only the dictionary fields that are serializable and exclude private attributes
+    return [{key: getattr(e, key) for key in e.__mapper__.c.keys()} for e in events]
